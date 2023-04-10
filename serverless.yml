@@ -1,0 +1,54 @@
+service: water-tracker
+plugins:
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-west-1
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - 'dynamodb:*'
+          Resource:
+            Fn::GetAtt:
+              - WaterTrackerTable
+              - Arn
+
+functions:
+  add:
+    handler: handler.add
+    events:
+      - http:
+          path: add
+          method: post
+  today:
+    handler: handler.today
+    events:
+      - http:
+          path: today
+          method: get
+  all:
+    handler: handler.all
+    events:
+      - http:
+          path: all
+          method: get
+
+resources:
+  Resources:
+    WaterTrackerTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: water_tracker
+        KeySchema:
+          - AttributeName: entry_datetime
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: entry_datetime
+            AttributeType: S
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
