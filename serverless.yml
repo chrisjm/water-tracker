@@ -30,6 +30,12 @@ functions:
       - http:
           path: today
           method: get
+  range:
+    handler: handler.range
+    events:
+      - http:
+          path: range
+          method: get
   all:
     handler: handler.all
     events:
@@ -42,13 +48,25 @@ resources:
     WaterTrackerTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: water_tracker
+        TableName: water_tracker_v1
         KeySchema:
-          - AttributeName: entry_datetime
+          - AttributeName: id
             KeyType: HASH
         AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
           - AttributeName: entry_datetime
             AttributeType: S
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          - IndexName: entry_datetime-index
+            KeySchema:
+              - AttributeName: entry_datetime
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
