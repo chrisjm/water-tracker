@@ -28,3 +28,10 @@ serverless offline start
 ```bash
 serverless deploy
 ```
+
+## Endpoints
+
+- `POST http://localhost:3000/dev/add [NUMBER]`
+- `GET http://localhost:3000/dev/all`
+- `GET http://localhost:3000/dev/today`
+- `GET http://localhost:3000/dev/range?start=[YYYY-MM-DD]&end=[YYYY-MM-DD]`
