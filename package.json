@@ -5,6 +5,7 @@
   "main": "index.js",
   "prettier": {},
   "scripts": {
+    "start": "node cli.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -13,7 +14,11 @@
   "author": "Chris J Mears",
   "license": "MIT",
   "dependencies": {
-    "aws-sdk": "^2.1353.0"
+    "aws-sdk": "^2.1353.0",
+    "dotenv": "^16.0.3",
+    "got": "^12.6.0",
+    "sorters": "^1.1.0",
+    "vorpal": "^1.12.0"
   },
   "devDependencies": {
     "serverless-offline": "^12.0.4"
