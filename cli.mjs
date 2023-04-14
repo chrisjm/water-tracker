@@ -3,6 +3,7 @@
 import * as dotenv from "dotenv";
 import v from "vorpal";
 import got from "got";
+import Table from "cli-table";
 import { sorter } from "sorters";
 
 dotenv.config();
@@ -19,12 +20,32 @@ function displayItems(items) {
       };
     })
     .sort(sorter("entry_datetime"));
+  const total = formattedItems.reduce((m, i) => (m += i.milliliters), 0);
 
+  let table = new Table({ head: ["Date", "mL"] });
   for (let entry of formattedItems) {
-    vorpal.log(
-      `${entry.entry_datetime.toLocaleString()}: ${entry.milliliters}mL`
-    );
+    table.push([entry.entry_datetime.toLocaleString(), entry.milliliters]);
   }
+  vorpal.log(table.toString());
+  vorpal.log(`Total = ${total}mL`);
+}
+
+function getDateOffsetUTCString(offset = 0) {
+  let datetime = new Date();
+  datetime.setDate(datetime.getDate() + offset);
+
+  let dateUTC = new Date(datetime.toUTCString());
+  // Set the start of the day to midnight UTC
+  dateUTC.setHours(0, 0, 0, 0);
+  const startOfDayUTC = new Date(dateUTC.getTime());
+  // Set the end of the day to 11:59:59.999 PM UTC
+  dateUTC.setHours(23, 59, 59, 999);
+  const endOfDayUTC = new Date(dateUTC.getTime());
+
+  return {
+    startOfDayUTC,
+    endOfDayUTC,
+  };
 }
 
 vorpal
@@ -50,18 +71,8 @@ vorpal
 
 vorpal
   .command("today", "Lists all the entries for today.")
-  .action(function (args, callback) {
-    // Get today's date in UTC time
-    const today = new Date();
-    const todayUTC = new Date(today.toUTCString());
-
-    // Set the start of the day to midnight UTC
-    todayUTC.setHours(0, 0, 0, 0);
-    const startOfDayUTC = new Date(todayUTC.getTime());
-    // Set the end of the day to 11:59:59.999 PM UTC
-    todayUTC.setHours(23, 59, 59, 999);
-    const endOfDayUTC = new Date(todayUTC.getTime());
-
+  .action(function (_, callback) {
+    const { startOfDayUTC, endOfDayUTC } = getDateOffsetUTCString(0);
     got
       .get(`${apiUrl}/range?start=${startOfDayUTC}&end=${endOfDayUTC}`)
       .then((response) => {
@@ -76,10 +87,11 @@ vorpal
   });
 
 vorpal
-  .command("all", "Lists all the entries.")
-  .action(function (args, callback) {
+  .command("yesterday", "Lists all the entries for yesterday.")
+  .action(function (_, callback) {
+    const { startOfDayUTC, endOfDayUTC } = getDateOffsetUTCString(-1);
     got
-      .get(`${apiUrl}/all`)
+      .get(`${apiUrl}/range?start=${startOfDayUTC}&end=${endOfDayUTC}`)
       .then((response) => {
         const data = JSON.parse(response.body);
         displayItems(data.Items);
@@ -90,5 +102,38 @@ vorpal
         callback();
       });
   });
+
+vorpal
+  .command("days-ago <days>", "Lists all the entries for the day.")
+  .action(function (args, callback) {
+    const { startOfDayUTC, endOfDayUTC } = getDateOffsetUTCString(
+      -parseInt(args.days)
+    );
+    got
+      .get(`${apiUrl}/range?start=${startOfDayUTC}&end=${endOfDayUTC}`)
+      .then((response) => {
+        const data = JSON.parse(response.body);
+        displayItems(data.Items);
+        callback();
+      })
+      .catch((error) => {
+        this.log(`Error showing today entries: ${error}`);
+        callback();
+      });
+  });
+
+vorpal.command("all", "Lists all the entries.").action(function (_, callback) {
+  got
+    .get(`${apiUrl}/all`)
+    .then((response) => {
+      const data = JSON.parse(response.body);
+      displayItems(data.Items);
+      callback();
+    })
+    .catch((error) => {
+      this.log(`Error showing today entries: ${error}`);
+      callback();
+    });
+});
 
 vorpal.delimiter("water-tracker$").show();
