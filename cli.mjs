@@ -4,6 +4,7 @@ import * as dotenv from "dotenv";
 import v from "vorpal";
 import got from "got";
 import Table from "cli-table";
+import inquirer from "inquirer";
 import { sorter } from "sorters";
 
 dotenv.config();
@@ -132,6 +133,74 @@ vorpal.command("all", "Lists all the entries.").action(function (_, callback) {
     })
     .catch((error) => {
       this.log(`Error showing today entries: ${error}`);
+      callback();
+    });
+});
+
+vorpal.command("update", "Update entries.").action(function (_, callback) {
+  got
+    .get(`${apiUrl}/all`)
+    .then((response) => {
+      const data = JSON.parse(response.body);
+      const prompt = inquirer.createPromptModule();
+      const choices = data?.Items?.map((i) => {
+        return {
+          name: `${i.entry_datetime.S} - ${+i.milliliters.N}mL`,
+          value: {
+            id: i.id.S,
+            entry_datetime: i.entry_datetime.S,
+            milliliters: +i.milliliters.N,
+          },
+        };
+      });
+      const entryQuestion = {
+        type: "list",
+        name: "entryQuestion",
+        message: "Which entry?",
+        choices,
+        pageSize: 10,
+      };
+      prompt(entryQuestion).then((entryAnswer) => {
+        this.log(entryAnswer);
+        const updateQuestions = [
+          {
+            type: "input",
+            name: "datetimeAnswer",
+            message: "Entry Datetime",
+            default: entryAnswer.entryQuestion.entry_datetime,
+          },
+          {
+            type: "input",
+            name: "mlAnswer",
+            message: "Millimeters (mL)",
+            default: entryAnswer.entryQuestion.milliliters,
+          },
+        ];
+        inquirer.prompt(updateQuestions).then((updateAnswers) => {
+          this.log(updateAnswers);
+          got
+            .put(`${apiUrl}/update`, {
+              json: {
+                id: entryAnswer.entryQuestion.id,
+                milliliters: updateAnswers.mlAnswer,
+                entry_datetime: updateAnswers.datetimeAnswer,
+              },
+            })
+            .then((response) => {
+              const data = JSON.parse(response.body);
+              this.log(data);
+              callback();
+            })
+            .catch((error) => {
+              this.log(`Error updating entries: ${error}`);
+              callback();
+            });
+          callback();
+        });
+      });
+    })
+    .catch((error) => {
+      this.log(`Error updating entries: ${error}`);
       callback();
     });
 });
