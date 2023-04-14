@@ -15,6 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "aws-sdk": "^2.1353.0",
+    "cli-table": "^0.3.11",
     "dotenv": "^16.0.3",
     "got": "^12.6.0",
     "sorters": "^1.1.0",
