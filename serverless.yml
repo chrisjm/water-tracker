@@ -24,6 +24,12 @@ functions:
       - http:
           path: add
           method: post
+  update:
+    handler: handler.update
+    events:
+      - http:
+          path: update
+          method: put
   today:
     handler: handler.today
     events:

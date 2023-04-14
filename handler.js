@@ -3,6 +3,55 @@ const { v4: uuidv4 } = require("uuid");
 const dynamoDB = new AWS.DynamoDB({ region: "us-west-1" });
 const tableName = "water_tracker_v1";
 
+module.exports.update = async (event) => {
+  const requestBody = JSON.parse(event.body);
+  const { id, milliliters, entry_datetime } = requestBody;
+
+  if (!id) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: "Missing required field: id" }),
+    };
+  }
+
+  const params = {
+    TableName: tableName,
+    Key: { id: { S: id } },
+    UpdateExpression: "SET",
+    ExpressionAttributeValues: {},
+  };
+
+  if (milliliters) {
+    params.UpdateExpression += " milliliters = :m,";
+    params.ExpressionAttributeValues[":m"] = { N: milliliters.toString() };
+  }
+
+  if (entry_datetime) {
+    params.UpdateExpression += " entry_datetime = :e,";
+    const newDatetime = new Date(entry_datetime).toISOString();
+    console.log(newDatetime);
+    params.ExpressionAttributeValues[":e"] = {
+      S: newDatetime,
+    };
+  }
+
+  params.UpdateExpression = params.UpdateExpression.slice(0, -1); // remove trailing comma
+
+  try {
+    await dynamoDB.updateItem(params).promise();
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: "Item updated successfully" }),
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Error updating item" }),
+    };
+  }
+};
+
 module.exports.add = async (event) => {
   const requestBody = JSON.parse(event.body);
   const milliliters = requestBody.milliliters.toString();
